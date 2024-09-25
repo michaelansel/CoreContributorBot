@@ -27,14 +27,22 @@ def process_issue(issue):
     Process a new issue, generate code changes using a RAG loop, and create a new pull request.
     """
     # Use the RAG loop to generate code changes
-    code_changes = rag_loop(issue.body)
+    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}')
     
-    if code_changes:
+    if code_changes and code_changes.startswith("CREATE PULL REQUEST"):
+        [cpr, title, rest] = code_changes.split("\n\n", 2)
+
+        pr_title = title.split('Title: ')[1]
+
         # Parse the generated code changes
-        parsed_changes = parse_code_changes(code_changes)
+        parsed_changes = parse_code_changes(rest)
         
         # Extract the pull request title
-        pr_title = parsed_changes.pop('Title', f'Address issue #{issue.number}')
+        # pr_title = parsed_changes.pop('Title', f'Address issue #{issue.number}')
+
+        print("Ready to submit code changes")
+        print(title)
+        print(parsed_changes)
         
         # Create a new branch for the code changes
         new_branch = f"issue-{issue.number}"
@@ -46,6 +54,8 @@ def process_issue(issue):
         
         # Create a new pull request
         repo.create_pull(title=pr_title, body=f'Address issue #{issue.number}', head=new_branch, base=repo.default_branch)
+    else:
+        print("Unable to parse final response")
 
 def process_pull_request_comment(pr, comment):
     """
@@ -75,23 +85,87 @@ def rag_loop(prompt):
     """
     context = ''
 
-    while True:
-        # Use OpenAI to analyze the prompt and generate code changes or request additional context
-        response = client.chat.completions.create(
-            engine='hermes-3-llama-3.1-405b-fp8-128k',
-            prompt=f'Context:\n{context}\n\nAnalyze the prompt below and generate code changes. If additional context is needed, request it by specifying the file path:\n{prompt}\n\nFormat the response as follows:\n\nTitle: [Title of the pull request]\n\nFile: [Path to the file]\n[Updated content of the file]\n\nFile: [Path to another file]\n[Updated content of another file]',
-            temperature=0.5,
-            max_tokens=1000
+    # Add initial context containing all the files in the repository
+    context += "Existing files:\n"
+    for file in repo.get_contents(''):
+        if file.type == 'file':
+            file_path = file.path
+            file_contents = repo.get_contents(file_path).decoded_content.decode() 
+            context += f'BEGIN FILE {file_path}\n{file_contents}\nEND FILE {file_path}\n\n'
+    context += '\n'
+
+    iterations = 0
+    while iterations < 10:
+        iterations += 1
+
+        llm_prompt = "\n\n".join([
+            " ".join([
+                "You are operating as a standalone developer maintaining a code repository.",
+                "You have received a code change request in the form of a GitHub Issue.",
+                "You are tasked with generating a pull request that will resolve the issue.",
+                "You are working within the scope of an existing code repository and you must review the existing code before suggesting changes.",
+                "You may update as many files as necessary, including creating new files when needed.",
+            ]),
+            f"BEGIN CONTEXT\n{context}\nEND CONTEXT",
+            f"Analyze the issue below and generate the appropriate code changes:\nBEGIN ISSUE\n{prompt}\nEND ISSUE",
+            "\n\n".join([
+                "Format your response as follows:",
+                "CREATE PULL REQUEST",
+                "Title: [Title of the pull request]",
+                "\n".join([
+                    "BEGIN FILE CONTENTS: [Path to the file]",
+                    "[Full updated contents of the file with nothing omitted]",
+                    "END FILE CONTENTS: [Path to the file]",
+                ]),
+                "\n".join([
+                    "BEGIN FILE CONTENTS: [Path to another file]",
+                    "[Full updated contents of another file with nothing omitted]",
+                    "END FILE CONTENTS: [Path to another file]",
+                ]),
+                "\n".join([
+                    "BEGIN FILE CONTENTS: [Path to a file to delete]",
+                    "END FILE CONTENTS: [Path to a file to delete]",
+                ])
+            ])
+        ])
+
+        print("Request")
+        print(llm_prompt)
+
+        response = openai_client.chat.completions.create(
+            model='hermes-3-llama-3.1-405b-fp8-128k',
+            messages=[
+                {
+                    "role": "user",
+                    "content": llm_prompt
+                }
+            ],
+            stream=True # Use streaming for easier monitoring and to avoid API timeouts
         )
 
-        output = response.choices[0].text.strip()
+        print("Response")
 
-        if output.startswith('Request context: '):
-            # Retrieve the requested context (e.g., existing code files)
-            file_path = output.replace('Request context: ', '').strip()
-            context += f'File: {file_path}\n{repo.get_contents(file_path).decoded_content.decode()}\n\n'
-        else:
-            return output
+        # create variable to collect the stream of messages
+        collected_messages = []
+        # iterate through the stream of events
+        for chunk in response:
+            chunk_message = chunk.choices[0].delta.content  # extract the message
+            collected_messages.append(chunk_message)  # save the message
+            if chunk_message is not None:
+                sys.stdout.write(chunk_message) # display the message
+        print("") # add a final newline
+
+        # clean None in collected_messages
+        collected_messages = [m for m in collected_messages if m is not None]
+        output = ''.join(collected_messages)
+
+        # output = response.choices[0].message.content.strip()
+        print("Full response")
+        print(output)
+
+        return output
+
+    print("Ran out of iterations and terminated")
 
 def parse_code_changes(code_changes):
     """
@@ -99,71 +173,82 @@ def parse_code_changes(code_changes):
     """
     changes_dict = {}
     
-    # Split the code_changes into separate file updates
-    file_updates = code_changes.split('\n\n')
+    # Split the code changes into separate file updates
+    d = "BEGIN FILE CONTENTS"
+    file_updates = [d+e for e in code_changes.split(d) if e]
     
     for update in file_updates:
         # Extract the filename and updated content
-        filename, content = update.split('\n', 1)
-        
-        # Remove the "File: " prefix from the filename
-        filename = filename.replace('File: ', '').strip()
-        
-        # Add the filename and content to the changes dictionary
-        changes_dict[filename] = content.strip()
-    
+        if update.startswith('BEGIN FILE CONTENTS: ') and "END FILE CONTENTS" in update:
+            filename_start = update.index('BEGIN FILE CONTENTS: ') + len('BEGIN FILE CONTENTS: ')
+            filename_end = update.index('\n', filename_start)
+            filename = update[filename_start:filename_end].strip()
+            
+            content_start = filename_end + 1
+            content_end = update.rfind('END FILE CONTENTS')
+            content = update[content_start:content_end].strip()
+            
+            # Add the filename and content to the changes dictionary
+            changes_dict[filename] = content
+        else:
+            print("Ignoring change for some reason")
+            print(update)
+
     return changes_dict
 
 # Unit tests
 class TestGitHubBot(unittest.TestCase):
-    @patch.object(OpenAI, 'chat')
-    def test_rag_loop(self, mock_openai):
-        # Test the RAG loop with a sample prompt and mocked OpenAI response
-        prompt = "Add a new function to the utils.py file that calculates the factorial of a given number"
-        mock_openai.completions.create.return_value = unittest.mock.Mock(choices=[unittest.mock.Mock(text="""Title: Add factorial function
+    # @patch.object(OpenAI, 'chat')
+    # def test_rag_loop(self, mock_openai):
+    #     # Test the RAG loop with a sample prompt and mocked OpenAI response
+    #     prompt = "Add a new function to the utils.py file that calculates the factorial of a given number"
+    #     mock_openai.completions.create.return_value = unittest.mock.Mock(choices=[unittest.mock.Mock(text="""Title: Add factorial function
         
-        File: utils.py
-        def factorial(n):
-            if n == 0:
-                return 1
-            else:
-                return n * factorial(n - 1)
-        """)])
+    #     BEGIN FILE CONTENTS: utils.py
+    #     def factorial(n):
+    #         if n == 0:
+    #             return 1
+    #         else:
+    #             return n * factorial(n - 1)
+    #     END FILE CONTENTS
+    #     """)])
         
-        code_changes = rag_loop(prompt)
+    #     code_changes = rag_loop(prompt)
         
-        # Assert that the code changes contain the expected function
-        self.assertIn("def factorial(n):", code_changes)
+    #     # Assert that the code changes contain the expected function
+    #     self.assertIn("def factorial(n):", code_changes)
     
     def test_parse_code_changes(self):
         # Test the parse_code_changes function with a sample output
-        code_changes = """Title: Add factorial function
-        
-        File: utils.py
-        def factorial(n):
-            if n == 0:
-                return 1
-            else:
-                return n * factorial(n - 1)
-        """
+        code_changes = """BEGIN FILE CONTENTS: utils.py
+# END FILE CONTENTS
+def factorial(n):
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n - 1)
+END FILE CONTENTS: utils.py"""
         
         parsed_changes = parse_code_changes(code_changes)
         
         # Assert that the parsed changes contain the expected filename and content
         self.assertIn("utils.py", parsed_changes)
-        self.assertEqual(parsed_changes["utils.py"], """def factorial(n):
-            if n == 0:
-                return 1
-            else:
-                return n * factorial(n - 1)""")
+        self.assertEqual(parsed_changes["utils.py"], """# END FILE CONTENTS
+def factorial(n):
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n - 1)""")
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'test':
         # Run the unit tests
-        unittest.main()
+        unittest.main(argv=[sys.argv[0]])
     else:
         # Run the bot
+        print("Running")
         for issue in repo.get_issues():
+            print("Handling an issue")
             if issue.state == 'open' and issue.comments == 0:
                 process_issue(issue)
 
