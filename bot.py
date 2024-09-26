@@ -64,12 +64,14 @@ def process_issue(issue):
             )
         
         # Create a new pull request
-        repo.create_pull(
+        pr = repo.create_pull(
             title=pr_title,
             body=f'Address issue #{issue.number}',
             head=new_branch,
             base=repo.default_branch
         )
+
+        issue.create_comment(f"Handling in PR: {pr.html_url}")
     else:
         print("Unable to parse final response")
 
