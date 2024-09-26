@@ -22,6 +22,10 @@ openai_client = OpenAI(
 repo_name = os.environ['GH_REPO']
 repo = gh.get_repo(repo_name)
 
+# Special keyword that can never appear in the code or it breaks the self-management behavior
+# Reason: we split files in the LLM output on this keyword, so it should only exist in the LLM "meta" output
+BEGIN_FILE_CONTENTS = "_".join(["BEGIN","FILE","CONTENTS"])
+
 def process_issue(issue):
     """
     Process a new issue, generate code changes using a RAG loop, and create a new pull request.
@@ -43,6 +47,7 @@ def process_issue(issue):
         print("Ready to submit code changes")
         print(title)
         print(parsed_changes)
+        return
         
         # Create a new branch for the code changes
         new_branch = f"issue-{issue.number}"
@@ -50,10 +55,22 @@ def process_issue(issue):
         
         # Update the files with the generated code changes
         for filename, content in parsed_changes.items():
-            repo.update_file(f'{new_branch}/{filename}', f'Update {filename} to address issue #{issue.number}', content, repo.get_commits().reversed[0].sha)
+            # todo update files on the branch
+            repo.update_file(
+                path=f'{filename}',
+                message=f'Update {filename} to address issue #{issue.number}',
+                content=content,
+                sha=repo.get_commits().reversed[0].sha, # todo I think this is wrong? :param sha: string, Required. The blob SHA of the file being replaced.
+                branch=new_branch,
+            )
         
         # Create a new pull request
-        repo.create_pull(title=pr_title, body=f'Address issue #{issue.number}', head=new_branch, base=repo.default_branch)
+        repo.create_pull(
+            title=pr_title,
+            body=f'Address issue #{issue.number}',
+            head=new_branch,
+            base=repo.default_branch
+        )
     else:
         print("Unable to parse final response")
 
@@ -113,17 +130,17 @@ def rag_loop(prompt):
                 "CREATE PULL REQUEST",
                 "Title: [Title of the pull request]",
                 "\n".join([
-                    "BEGIN FILE CONTENTS: [Path to the file]",
+                    BEGIN_FILE_CONTENTS+": [Path to the file]",
                     "[Full updated contents of the file with nothing omitted]",
                     "END FILE CONTENTS: [Path to the file]",
                 ]),
                 "\n".join([
-                    "BEGIN FILE CONTENTS: [Path to another file]",
+                    BEGIN_FILE_CONTENTS+": [Path to another file]",
                     "[Full updated contents of another file with nothing omitted]",
                     "END FILE CONTENTS: [Path to another file]",
                 ]),
                 "\n".join([
-                    "BEGIN FILE CONTENTS: [Path to a file to delete]",
+                    BEGIN_FILE_CONTENTS+": [Path to a file to delete]",
                     "END FILE CONTENTS: [Path to a file to delete]",
                 ])
             ])
@@ -174,18 +191,18 @@ def parse_code_changes(code_changes):
     changes_dict = {}
     
     # Split the code changes into separate file updates
-    d = "BEGIN FILE CONTENTS"
+    d = BEGIN_FILE_CONTENTS+": "
     file_updates = [d+e for e in code_changes.split(d) if e]
     
     for update in file_updates:
         # Extract the filename and updated content
-        if update.startswith('BEGIN FILE CONTENTS: ') and "END FILE CONTENTS" in update:
-            filename_start = update.index('BEGIN FILE CONTENTS: ') + len('BEGIN FILE CONTENTS: ')
+        if update.startswith(BEGIN_FILE_CONTENTS+': ') and "END FILE CONTENTS" in update:
+            filename_start = update.index(BEGIN_FILE_CONTENTS+': ') + len(BEGIN_FILE_CONTENTS+': ')
             filename_end = update.index('\n', filename_start)
             filename = update[filename_start:filename_end].strip()
             
             content_start = filename_end + 1
-            content_end = update.rfind('END FILE CONTENTS')
+            content_end = update.rfind('END FILE CONTENTS: '+filename)
             content = update[content_start:content_end].strip()
             
             # Add the filename and content to the changes dictionary
@@ -220,7 +237,7 @@ class TestGitHubBot(unittest.TestCase):
     
     def test_parse_code_changes(self):
         # Test the parse_code_changes function with a sample output
-        code_changes = """BEGIN FILE CONTENTS: utils.py
+        code_changes = BEGIN_FILE_CONTENTS+""": utils.py
 # END FILE CONTENTS
 def factorial(n):
     if n == 0:
