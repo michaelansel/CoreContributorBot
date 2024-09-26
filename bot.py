@@ -148,7 +148,7 @@ def get_proposed_changes(pr):
         proposed_changes[file.filename] = file.patch
     return proposed_changes
 
-def rag_loop(comment, extra_context):
+def rag_loop(prompt, extra_context):
     """
     Generate code changes using a RAG loop.
     """
@@ -176,7 +176,7 @@ def rag_loop(comment, extra_context):
                 "You may update as many files as necessary, including creating new files when needed.",
             ]),
             f"BEGIN CONTEXT\n{context}\nEND CONTEXT",
-            f"Analyze the issue below and generate the appropriate code changes:\nBEGIN ISSUE\n{comment}\nEND ISSUE",
+            f"Analyze the issue below and generate the appropriate code changes:\nBEGIN ISSUE\n{prompt}\nEND ISSUE",
             "\n\n".join([
                 "Format your response as follows:",
                 "CREATE PULL REQUEST",
