@@ -24,7 +24,7 @@ repo = gh.get_repo(repo_name)
 
 # Special keyword that can never appear in the code or it breaks the self-management behavior
 # Reason: we split files in the LLM output on this keyword, so it should only exist in the LLM "meta" output
-BEGIN_FILE_CONTENTS = " ".join(["BEGIN","FILE","CONTENTS"])
+SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER = " ".join(["###","BEGIN","FILE","CONTENTS"])
 
 def process_issue(issue):
     """
@@ -131,17 +131,17 @@ def rag_loop(prompt):
                 "CREATE PULL REQUEST",
                 "Title: [Title of the pull request]",
                 "\n".join([
-                    BEGIN_FILE_CONTENTS+": [Path to the file]",
+                    SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+": [Path to the file]",
                     "[Full updated contents of the file with nothing omitted]",
                     "END FILE CONTENTS: [Path to the file]",
                 ]),
                 "\n".join([
-                    BEGIN_FILE_CONTENTS+": [Path to another file]",
+                    SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+": [Path to another file]",
                     "[Full updated contents of another file with nothing omitted]",
                     "END FILE CONTENTS: [Path to another file]",
                 ]),
                 "\n".join([
-                    BEGIN_FILE_CONTENTS+": [Path to a file to delete]",
+                    SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+": [Path to a file to delete]",
                     "END FILE CONTENTS: [Path to a file to delete]",
                 ])
             ])
@@ -193,13 +193,13 @@ def parse_code_changes(code_changes):
     changes_dict = {}
     
     # Split the code changes into separate file updates
-    d = BEGIN_FILE_CONTENTS+": "
+    d = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+": "
     file_updates = [d+e for e in code_changes.split(d) if e]
     
     for update in file_updates:
         # Extract the filename and updated content
-        if update.startswith(BEGIN_FILE_CONTENTS+': ') and "END FILE CONTENTS" in update:
-            filename_start = update.index(BEGIN_FILE_CONTENTS+': ') + len(BEGIN_FILE_CONTENTS+': ')
+        if update.startswith(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+': ') and "END FILE CONTENTS" in update:
+            filename_start = update.index(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+': ') + len(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+': ')
             filename_end = update.index('\n', filename_start)
             filename = update[filename_start:filename_end].strip()
             
@@ -243,7 +243,7 @@ class TestGitHubBot(unittest.TestCase):
     
     def test_parse_code_changes(self):
         # Test the parse_code_changes function with a sample output
-        code_changes = BEGIN_FILE_CONTENTS+""": utils.py
+        code_changes = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+""": utils.py
 # END FILE CONTENTS
 def factorial(n):
     if n == 0:
