@@ -47,7 +47,6 @@ def process_issue(issue):
         print("Ready to submit code changes")
         print(title)
         print(parsed_changes)
-        return
         
         # Create a new branch for the code changes
         new_branch = f"issue-{issue.number}"
@@ -55,12 +54,12 @@ def process_issue(issue):
         
         # Update the files with the generated code changes
         for filename, content in parsed_changes.items():
-            # todo update files on the branch
+            file = repo.get_file_contents(filename)
             repo.update_file(
                 path=f'{filename}',
                 message=f'Update {filename} to address issue #{issue.number}',
                 content=content,
-                sha=repo.get_commits().reversed[0].sha, # todo I think this is wrong? :param sha: string, Required. The blob SHA of the file being replaced.
+                sha=file.sha,
                 branch=new_branch,
             )
         
