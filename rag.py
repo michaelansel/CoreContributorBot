@@ -10,6 +10,11 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 def log(message):
     logging.info(message)
 
+# Initialize GitHub API client
+gh_token = os.environ['GITHUB_TOKEN']
+gh = Github(gh_token)
+
+# Initialize OpenAI API client
 openai_api_key = os.environ['OPENAI_API_KEY']
 openai_api_base = "https://api.lambdalabs.com/v1"
 
@@ -17,6 +22,10 @@ openai_client = OpenAI(
     api_key=openai_api_key,
     base_url=openai_api_base,
 )
+
+# Define the repository to monitor
+repo_name = os.environ['GH_REPO']
+repo = gh.get_repo(repo_name)
 
 SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER = " ".join(["###","BEGIN","FILE","CONTENTS"])
 
