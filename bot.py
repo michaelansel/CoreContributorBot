@@ -39,7 +39,7 @@ def process_issue(issue):
     Process a new issue, generate code changes using a RAG loop, and create a new pull request.
     """
     # Use the RAG loop to generate code changes
-    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}')
+    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}', "")
     
     if code_changes and code_changes.startswith("CREATE PULL REQUEST"):
         [cpr, title, rest] = code_changes.split("\n\n", 2)
@@ -101,8 +101,19 @@ def process_pull_request_comment(pr, comment):
     # Get the proposed code changes from the pull request
     proposed_changes = get_proposed_changes(pr)
 
+    extra_context = ""
+    
+    # Add context for the original issue title and description
+    extra_context += f"Issue Title: {issue_title}\nIssue Description:\n{issue_description}\n\n"
+
+    # Add context for the proposed code changes
+    context += "Proposed Changes:\n"
+    for filename, patch in proposed_changes.items():
+        context += f"BEGIN FILE {filename}\n{patch}\nEND FILE {filename}\n"
+    context += '\n'
+
     # Use the RAG loop to generate code changes
-    code_changes = rag_loop(comment.body, issue_title, issue_description, proposed_changes)
+    code_changes = rag_loop(comment.body, extra_context)
     
     if code_changes:
         # Update the pull request with the generated code changes
@@ -137,7 +148,7 @@ def get_proposed_changes(pr):
         proposed_changes[file.filename] = file.patch
     return proposed_changes
 
-def rag_loop(comment, issue_title, issue_description, proposed_changes):
+def rag_loop(comment, extra_context):
     """
     Generate code changes using a RAG loop.
     """
@@ -150,15 +161,6 @@ def rag_loop(comment, issue_title, issue_description, proposed_changes):
             file_path = file.path
             file_contents = repo.get_contents(file_path).decoded_content.decode() 
             context += f'BEGIN FILE {file_path}\n{file_contents}\nEND FILE {file_path}\n\n'
-    context += '\n'
-
-    # Add context for the original issue title and description
-    context += f"Issue Title: {issue_title}\nIssue Description:\n{issue_description}\n\n"
-
-    # Add context for the proposed code changes
-    context += "Proposed Changes:\n"
-    for filename, patch in proposed_changes.items():
-        context += f"BEGIN FILE {filename}\n{patch}\nEND FILE {filename}\n"
     context += '\n'
 
     iterations = 0
