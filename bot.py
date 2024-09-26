@@ -157,6 +157,7 @@ def rag_loop(prompt):
                     "content": llm_prompt
                 }
             ],
+            max_tokens=10000,
             stream=True # Use streaming for easier monitoring and to avoid API timeouts
         )
 
@@ -203,6 +204,10 @@ def parse_code_changes(code_changes):
             
             content_start = filename_end + 1
             content_end = update.rfind('END FILE CONTENTS: '+filename)
+            if(content_end < 0):
+                print("Unable to locate end delimiter. Failing all parsing.")
+                print(update)
+                return {}
             content = update[content_start:content_end].strip()
             
             # Add the filename and content to the changes dictionary
