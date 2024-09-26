@@ -178,7 +178,7 @@ def rag_loop(prompt):
             collected_messages.append(chunk_message)  # save the message
             if chunk_message is not None:
                 sys.stdout.write(chunk_message) # display the message
-        log("") # add a final newline
+        sys.stdout.write("\n") # add a final newline
 
         # clean None in collected_messages
         collected_messages = [m for m in collected_messages if m is not None]
