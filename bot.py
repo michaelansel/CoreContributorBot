@@ -71,7 +71,7 @@ def process_issue(issue):
                     sha=file.sha,
                     branch=new_branch,
                 )
-            except e:
+            except:
                 repo.create_file(
                     path=f'{filename}',
                     message=f'Update {filename} to address issue #{issue.number}',
