@@ -45,12 +45,12 @@ def process_issue(issue):
         # pr_title = parsed_changes.pop('Title', f'Address issue #{issue.number}')
 
         print("Ready to submit code changes")
-        print(title)
+        print(pr_title)
         print(parsed_changes)
         
         # Create a new branch for the code changes
         new_branch = f"issue-{issue.number}"
-        repo.create_git_ref(f'refs/heads/{new_branch}', repo.get_git_ref("refs/heads/main").object.sha)
+        repo.create_git_ref(f'refs/heads/{new_branch}', repo.get_git_ref("heads/main").object.sha)
         
         # Update the files with the generated code changes
         for filename, content in parsed_changes.items():
