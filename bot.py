@@ -107,10 +107,10 @@ def process_pull_request_comment(pr, comment):
     extra_context += f"Issue Title: {issue_title}\nIssue Description:\n{issue_description}\n\n"
 
     # Add context for the proposed code changes
-    context += "Proposed Changes:\n"
+    extra_context += "Proposed Changes:\n"
     for filename, patch in proposed_changes.items():
-        context += f"BEGIN FILE {filename}\n{patch}\nEND FILE {filename}\n"
-    context += '\n'
+        extra_context += f"BEGIN FILE {filename}\n{patch}\nEND FILE {filename}\n"
+    extra_context += '\n'
 
     # Use the RAG loop to generate code changes
     code_changes = rag_loop(comment.body, extra_context)
@@ -245,7 +245,7 @@ def parse_code_changes(code_changes):
     
     # Split the code changes into separate file updates
     d = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+": "
-    file_updates = [d+e for e in code_changes.split(d) if e]
+    file_updates = [(d+e).strip() for e in ("\n"+code_changes).split("\n"+d) if e]
     
     for update in file_updates:
         # Extract the filename and updated content
