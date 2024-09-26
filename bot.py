@@ -54,7 +54,7 @@ def process_issue(issue):
         
         # Update the files with the generated code changes
         for filename, content in parsed_changes.items():
-            file = repo.get_file_contents(filename)
+            file = repo.get_contents(filename)
             repo.update_file(
                 path=f'{filename}',
                 message=f'Update {filename} to address issue #{issue.number}',
