@@ -210,7 +210,7 @@ def parse_code_changes(code_changes):
     
     # Split the code changes into separate file updates
     d = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+": "
-    file_updates = [d+e for e in code_changes.split(d) if e]
+    file_updates = [(d+e).strip() for e in ("\n"+code_changes).split("\n"+d) if e]
     
     for update in file_updates:
         # Extract the filename and updated content
