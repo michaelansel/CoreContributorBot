@@ -39,7 +39,7 @@ def process_issue(issue):
     Process a new issue, generate code changes using a RAG loop, and create a new pull request.
     """
     # Use the RAG loop to generate code changes
-    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}')
+    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}', "")
     
     if code_changes and code_changes.startswith("CREATE PULL REQUEST"):
         [cpr, title, rest] = code_changes.split("\n\n", 2)
@@ -95,8 +95,25 @@ def process_pull_request_comment(pr, comment):
     """
     Process a pull request comment and generate code changes if necessary.
     """
+    # Extract the original issue title and description from the pull request body
+    issue_title, issue_description = extract_issue_from_pull_request(pr.body)
+
+    # Get the proposed code changes from the pull request
+    proposed_changes = get_proposed_changes(pr)
+
+    extra_context = ""
+    
+    # Add context for the original issue title and description
+    extra_context += f"Issue Title: {issue_title}\nIssue Description:\n{issue_description}\n\n"
+
+    # Add context for the proposed code changes
+    extra_context += "Proposed Changes:\n"
+    for filename, patch in proposed_changes.items():
+        extra_context += f"BEGIN FILE {filename}\n{patch}\nEND FILE {filename}\n"
+    extra_context += '\n'
+
     # Use the RAG loop to generate code changes
-    code_changes = rag_loop(comment.body)
+    code_changes = rag_loop(comment.body, extra_context)
     
     if code_changes:
         # Update the pull request with the generated code changes
@@ -113,7 +130,25 @@ def process_pull_request_comment(pr, comment):
         for filename, content in parse_code_changes(code_changes).items():
             repo.update_file(f'{new_branch}/{filename}', f'Update {filename} based on feedback', content, latest_commit.sha)
 
-def rag_loop(prompt):
+def extract_issue_from_pull_request(pr_body):
+    """
+    Extract the original issue title and description from the pull request body.
+    """
+    lines = pr_body.split('\n')
+    issue_title = lines[0].strip()
+    issue_description = '\n'.join(lines[1:]).strip()
+    return issue_title, issue_description
+
+def get_proposed_changes(pr):
+    """
+    Get the proposed code changes from the pull request.
+    """
+    proposed_changes = {}
+    for file in pr.get_files():
+        proposed_changes[file.filename] = file.patch
+    return proposed_changes
+
+def rag_loop(prompt, extra_context):
     """
     Generate code changes using a RAG loop.
     """
