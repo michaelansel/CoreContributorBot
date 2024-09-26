@@ -1,9 +1,17 @@
 import os
+import logging
 from openai import OpenAI
 from github import Github
 import unittest
 from unittest.mock import patch
 import sys
+
+# Initialize logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Log a message
+def log(message):
+    logging.info(message)
 
 # Initialize GitHub API client
 gh_token = os.environ['GITHUB_TOKEN']
@@ -44,9 +52,9 @@ def process_issue(issue):
         # Extract the pull request title
         # pr_title = parsed_changes.pop('Title', f'Address issue #{issue.number}')
 
-        print("Ready to submit code changes")
-        print(pr_title)
-        print(parsed_changes)
+        log(f"Ready to submit code changes for issue #{issue.number}")
+        log(f"Pull request title: {pr_title}")
+        log(f"Code changes: {parsed_changes}")
         
         # Create a new branch for the code changes
         new_branch = f"issue-{issue.number}"
@@ -73,7 +81,7 @@ def process_issue(issue):
 
         issue.create_comment(f"Handling in PR: {pr.html_url}")
     else:
-        print("Unable to parse final response")
+        log("Unable to parse final response")
 
 def process_pull_request_comment(pr, comment):
     """
@@ -147,8 +155,8 @@ def rag_loop(prompt):
             ])
         ])
 
-        print("Request")
-        print(llm_prompt)
+        log("Request")
+        log(llm_prompt)
 
         response = openai_client.chat.completions.create(
             model='hermes-3-llama-3.1-405b-fp8-128k',
@@ -162,7 +170,7 @@ def rag_loop(prompt):
             stream=True # Use streaming for easier monitoring and to avoid API timeouts
         )
 
-        print("Response")
+        log("Response")
 
         # create variable to collect the stream of messages
         collected_messages = []
@@ -172,19 +180,19 @@ def rag_loop(prompt):
             collected_messages.append(chunk_message)  # save the message
             if chunk_message is not None:
                 sys.stdout.write(chunk_message) # display the message
-        print("") # add a final newline
+        sys.stdout.write("\n") # add a final newline
 
         # clean None in collected_messages
         collected_messages = [m for m in collected_messages if m is not None]
         output = ''.join(collected_messages)
 
         # output = response.choices[0].message.content.strip()
-        print("Full response")
-        print(output)
+        log("Full response")
+        log(output)
 
         return output
 
-    print("Ran out of iterations and terminated")
+    log("Ran out of iterations and terminated")
 
 def parse_code_changes(code_changes):
     """
@@ -206,16 +214,16 @@ def parse_code_changes(code_changes):
             content_start = filename_end + 1
             content_end = update.rfind('END FILE CONTENTS: '+filename)
             if(content_end < 0):
-                print("Unable to locate end delimiter. Failing all parsing.")
-                print(update)
+                log("Unable to locate end delimiter. Failing all parsing.")
+                log(update)
                 return {}
             content = update[content_start:content_end].strip()
             
             # Add the filename and content to the changes dictionary
             changes_dict[filename] = content
         else:
-            print("Ignoring change for some reason")
-            print(update)
+            log("Ignoring change for some reason")
+            log(update)
 
     return changes_dict
 
@@ -269,9 +277,9 @@ if __name__ == '__main__':
         unittest.main(argv=[sys.argv[0]])
     else:
         # Run the bot
-        print("Running")
+        log("Running")
         for issue in repo.get_issues():
-            print("Handling an issue")
+            log("Handling an issue")
             if issue.state == 'open' and issue.comments == 0:
                 process_issue(issue)
 
