@@ -62,14 +62,22 @@ def process_issue(issue):
         
         # Update the files with the generated code changes
         for filename, content in parsed_changes.items():
-            file = repo.get_contents(filename, ref=new_branch)
-            repo.update_file(
-                path=f'{filename}',
-                message=f'Update {filename} to address issue #{issue.number}',
-                content=content,
-                sha=file.sha,
-                branch=new_branch,
-            )
+            try:
+                file = repo.get_contents(filename, ref=new_branch)
+                repo.update_file(
+                    path=f'{filename}',
+                    message=f'Update {filename} to address issue #{issue.number}',
+                    content=content,
+                    sha=file.sha,
+                    branch=new_branch,
+                )
+            except e:
+                repo.create_file(
+                    path=f'{filename}',
+                    message=f'Update {filename} to address issue #{issue.number}',
+                    content=content,
+                    branch=new_branch,
+                )
         
         # Create a new pull request
         pr = repo.create_pull(
