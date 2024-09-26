@@ -117,7 +117,6 @@ def process_pull_request_comment(pr, comment):
     
     if code_changes:
         # Update the pull request with the generated code changes
-        pr.create_comment(f"Based on the feedback, here are the proposed code changes:")
         
         # Get the latest commit of the pull request
         latest_commit = pr.get_commits().reversed[0]
@@ -142,7 +141,7 @@ def process_pull_request_comment(pr, comment):
                     branch=pr_branch,
                 )
 
-        pr.create_comment("Bot Response: Updated based on feedback")
+        pr.create_issue_comment("Bot Response: Updated based on feedback")
 
 def extract_issue_from_pull_request(pr_body):
     """
