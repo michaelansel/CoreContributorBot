@@ -54,6 +54,6 @@ def process_issue(issue):
             base=repo.default_branch
         )
 
-        issue.create_comment(f"Handling in PR: {pr.html_url}")
+        issue.create_comment(f"Bot Response: Handling in PR: {pr.html_url}")
     else:
         log("Unable to parse final response")
