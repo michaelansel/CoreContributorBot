@@ -147,10 +147,12 @@ def extract_issue_from_pull_request(pr_body):
     """
     Extract the original issue title and description from the pull request body.
     """
-    lines = pr_body.split('\n')
-    issue_title = lines[0].strip()
-    issue_description = '\n'.join(lines[1:]).strip()
-    return issue_title, issue_description
+    if pr_body.startswith("Address issue #"):
+        number = pr_body.split("Address issue #", 1)[1]
+        issue = repo.get_issue(number=int(number))
+        return issue.title, issue.body
+    
+    raise Exception("can't find the associated issue")
 
 def get_proposed_changes(pr):
     """
@@ -175,6 +177,8 @@ def rag_loop(prompt, extra_context):
             file_contents = repo.get_contents(file_path).decoded_content.decode() 
             context += f'BEGIN FILE {file_path}\n{file_contents}\nEND FILE {file_path}\n\n'
     context += '\n'
+
+    context += extra_context
 
     iterations = 0
     while iterations < 10:
