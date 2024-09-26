@@ -287,6 +287,9 @@ if __name__ == '__main__':
         # Run the bot
         log("Running")
         for issue in repo.get_issues():
+            if issue.pull_request:
+                log("Ignoring pull request presenting as an issue")
+                continue
             log("Handling an issue")
             if issue.state == 'open' and issue.comments == 0:
                 process_issue(issue)
