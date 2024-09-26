@@ -25,5 +25,4 @@ jobs:
            EOF
       - name: Run tests
         run: |
-          ./build.sh
-          ./test.sh
+          source .env && python bot.py test
