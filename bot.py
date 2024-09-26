@@ -24,7 +24,7 @@ repo = gh.get_repo(repo_name)
 
 # Special keyword that can never appear in the code or it breaks the self-management behavior
 # Reason: we split files in the LLM output on this keyword, so it should only exist in the LLM "meta" output
-BEGIN_FILE_CONTENTS = "_".join(["BEGIN","FILE","CONTENTS"])
+BEGIN_FILE_CONTENTS = " ".join(["BEGIN","FILE","CONTENTS"])
 
 def process_issue(issue):
     """
