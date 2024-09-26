@@ -95,8 +95,14 @@ def process_pull_request_comment(pr, comment):
     """
     Process a pull request comment and generate code changes if necessary.
     """
+    # Extract the original issue title and description from the pull request body
+    issue_title, issue_description = extract_issue_from_pull_request(pr.body)
+
+    # Get the proposed code changes from the pull request
+    proposed_changes = get_proposed_changes(pr)
+
     # Use the RAG loop to generate code changes
-    code_changes = rag_loop(comment.body)
+    code_changes = rag_loop(comment.body, issue_title, issue_description, proposed_changes)
     
     if code_changes:
         # Update the pull request with the generated code changes
@@ -113,7 +119,25 @@ def process_pull_request_comment(pr, comment):
         for filename, content in parse_code_changes(code_changes).items():
             repo.update_file(f'{new_branch}/{filename}', f'Update {filename} based on feedback', content, latest_commit.sha)
 
-def rag_loop(prompt):
+def extract_issue_from_pull_request(pr_body):
+    """
+    Extract the original issue title and description from the pull request body.
+    """
+    lines = pr_body.split('\n')
+    issue_title = lines[0].strip()
+    issue_description = '\n'.join(lines[1:]).strip()
+    return issue_title, issue_description
+
+def get_proposed_changes(pr):
+    """
+    Get the proposed code changes from the pull request.
+    """
+    proposed_changes = {}
+    for file in pr.get_files():
+        proposed_changes[file.filename] = file.patch
+    return proposed_changes
+
+def rag_loop(comment, issue_title, issue_description, proposed_changes):
     """
     Generate code changes using a RAG loop.
     """
@@ -126,6 +150,15 @@ def rag_loop(prompt):
             file_path = file.path
             file_contents = repo.get_contents(file_path).decoded_content.decode() 
             context += f'BEGIN FILE {file_path}\n{file_contents}\nEND FILE {file_path}\n\n'
+    context += '\n'
+
+    # Add context for the original issue title and description
+    context += f"Issue Title: {issue_title}\nIssue Description:\n{issue_description}\n\n"
+
+    # Add context for the proposed code changes
+    context += "Proposed Changes:\n"
+    for filename, patch in proposed_changes.items():
+        context += f"BEGIN FILE {filename}\n{patch}\nEND FILE {filename}\n"
     context += '\n'
 
     iterations = 0
@@ -141,7 +174,7 @@ def rag_loop(prompt):
                 "You may update as many files as necessary, including creating new files when needed.",
             ]),
             f"BEGIN CONTEXT\n{context}\nEND CONTEXT",
-            f"Analyze the issue below and generate the appropriate code changes:\nBEGIN ISSUE\n{prompt}\nEND ISSUE",
+            f"Analyze the issue below and generate the appropriate code changes:\nBEGIN ISSUE\n{comment}\nEND ISSUE",
             "\n\n".join([
                 "Format your response as follows:",
                 "CREATE PULL REQUEST",
@@ -210,7 +243,7 @@ def parse_code_changes(code_changes):
     
     # Split the code changes into separate file updates
     d = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+": "
-    file_updates = [(d+e).strip() for e in ("\n"+code_changes).split("\n"+d) if e]
+    file_updates = [d+e for e in code_changes.split(d) if e]
     
     for update in file_updates:
         # Extract the filename and updated content
