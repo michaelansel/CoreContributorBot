@@ -87,7 +87,7 @@ def process_issue(issue):
             base=repo.default_branch
         )
 
-        issue.create_comment(f"Handling in PR: {pr.html_url}")
+        issue.create_comment(f"Bot Response: Handling in PR: {pr.html_url}")
     else:
         log("Unable to parse final response")
 
@@ -122,13 +122,27 @@ def process_pull_request_comment(pr, comment):
         # Get the latest commit of the pull request
         latest_commit = pr.get_commits().reversed[0]
         
-        # Create a new branch for the code changes
-        new_branch = f"update-pr-{pr.number}"
-        repo.create_git_ref(f'refs/heads/{new_branch}', latest_commit.sha)
-        
         # Update the files with the generated code changes
+        pr_branch = pr.head.ref
         for filename, content in parse_code_changes(code_changes).items():
-            repo.update_file(f'{new_branch}/{filename}', f'Update {filename} based on feedback', content, latest_commit.sha)
+            try:
+                file = repo.get_contents(filename, ref=pr_branch)
+                repo.update_file(
+                    path=f'{filename}',
+                    message=f'Update {filename} based on feedback',
+                    content=content,
+                    sha=file.sha,
+                    branch=pr_branch,
+                )
+            except:
+                repo.create_file(
+                    path=f'{filename}',
+                    message=f'Update {filename} based on feedback',
+                    content=content,
+                    branch=pr_branch,
+                )
+
+        pr.create_comment("Bot Response: Updated based on feedback")
 
 def extract_issue_from_pull_request(pr_body):
     """
@@ -330,6 +344,8 @@ if __name__ == '__main__':
                 process_issue(issue)
 
         for pr in repo.get_pulls():
-            for comment in pr.get_comments():
-                if comment.user != gh.get_user():
-                    process_pull_request_comment(pr, comment)
+            comments = list(pr.get_comments())
+            if comments:
+                most_recent_comment = sorted(comments, key=lambda comment: comment.created_at)[-1]
+                if not most_recent_comment.body.startswith("Bot Response: "):
+                    process_pull_request_comment(pr, most_recent_comment)
