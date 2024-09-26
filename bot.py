@@ -50,11 +50,11 @@ def process_issue(issue):
         
         # Create a new branch for the code changes
         new_branch = f"issue-{issue.number}"
-        repo.create_git_ref(f'refs/heads/{new_branch}', repo.get_commits().reversed[0].sha)
+        repo.create_git_ref(f'refs/heads/{new_branch}', repo.get_ref("refs/heads/main").object.sha)
         
         # Update the files with the generated code changes
         for filename, content in parsed_changes.items():
-            file = repo.get_contents(filename)
+            file = repo.get_contents(filename, ref=new_branch)
             repo.update_file(
                 path=f'{filename}',
                 message=f'Update {filename} to address issue #{issue.number}',
