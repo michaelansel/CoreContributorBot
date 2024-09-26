@@ -18,13 +18,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      -  name: Write secrets to file
-         run: |
-           cat << EOF > ./.env
-           ${{ secrets.ENV_FILE }}
-           EOF
       - name: Run tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.ENV_GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.ENV_OPENAI_API_KEY }}
+          GH_REPO: ${{ vars.ENV_GH_REPO }}
         run: |
-          ls .env && wc .env
-          source .env
           python bot.py test
