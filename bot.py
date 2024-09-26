@@ -39,7 +39,7 @@ def process_issue(issue):
     Process a new issue, generate code changes using a RAG loop, and create a new pull request.
     """
     # Use the RAG loop to generate code changes
-    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}', "")
+    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}')
     
     if code_changes and code_changes.startswith("CREATE PULL REQUEST"):
         [cpr, title, rest] = code_changes.split("\n\n", 2)
@@ -117,7 +117,6 @@ def process_pull_request_comment(pr, comment):
     
     if code_changes:
         # Update the pull request with the generated code changes
-        pr.create_comment(f"Based on the feedback, here are the proposed code changes:")
         
         # Get the latest commit of the pull request
         latest_commit = pr.get_commits().reversed[0]
@@ -142,16 +141,18 @@ def process_pull_request_comment(pr, comment):
                     branch=pr_branch,
                 )
 
-        pr.create_comment("Bot Response: Updated based on feedback")
+        pr.create_issue_comment("Bot Response: Updated based on feedback")
 
 def extract_issue_from_pull_request(pr_body):
     """
     Extract the original issue title and description from the pull request body.
     """
-    lines = pr_body.split('\n')
-    issue_title = lines[0].strip()
-    issue_description = '\n'.join(lines[1:]).strip()
-    return issue_title, issue_description
+    if pr_body.startswith("Address issue #"):
+        number = pr_body.split("Address issue #", 1)[1]
+        issue = repo.get_issue(number=int(number))
+        return issue.title, issue.body
+    
+    raise Exception("can't find the associated issue")
 
 def get_proposed_changes(pr):
     """
@@ -176,6 +177,8 @@ def rag_loop(prompt, extra_context):
             file_contents = repo.get_contents(file_path).decoded_content.decode() 
             context += f'BEGIN FILE {file_path}\n{file_contents}\nEND FILE {file_path}\n\n'
     context += '\n'
+
+    context += extra_context
 
     iterations = 0
     while iterations < 10:
@@ -286,6 +289,26 @@ def parse_code_changes(code_changes):
 
 # Unit tests
 class TestGitHubBot(unittest.TestCase):
+    # @patch.object(OpenAI, 'chat')
+    # def test_rag_loop(self, mock_openai):
+    #     # Test the RAG loop with a sample prompt and mocked OpenAI response
+    #     prompt = "Add a new function to the utils.py file that calculates the factorial of a given number"
+    #     mock_openai.completions.create.return_value = unittest.mock.Mock(choices=[unittest.mock.Mock(text="""Title: Add factorial function
+        
+    #     BEGIN FILE CONTENTS: utils.py
+    #     def factorial(n):
+    #         if n == 0:
+    #             return 1
+    #         else:
+    #             return n * factorial(n - 1)
+    #     END FILE CONTENTS
+    #     """)])
+        
+    #     code_changes = rag_loop(prompt)
+        
+    #     # Assert that the code changes contain the expected function
+    #     self.assertIn("def factorial(n):", code_changes)
+    
     def test_parse_code_changes(self):
         # Test the parse_code_changes function with a sample output
         code_changes = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+""": utils.py
