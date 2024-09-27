@@ -1,5 +1,4 @@
 import os
-import logging
 from openai import OpenAI
 from github import Github
 import unittest
@@ -7,13 +6,7 @@ from unittest.mock import patch
 import sys
 from parse_code_changes import parse_code_changes
 from constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
-
-# Initialize logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# Log a message
-def log(message):
-    logging.info(message)
+from log import log
 
 # Initialize GitHub API client
 gh_token = os.environ['GITHUB_TOKEN']
