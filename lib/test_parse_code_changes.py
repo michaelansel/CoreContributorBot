@@ -1,27 +1,22 @@
-from .parse_code_changes import parse_code_changes
-from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 import unittest
+from lib.parse_code_changes import parse_code_changes
+from lib.constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 
-# Unit tests
-class TestParseCodeChanges(unittest.TestCase):    
+class TestParseCodeChanges(unittest.TestCase):
     def test_single_file_changed(self):
-        # Test the parse_code_changes function with a sample output
-        code_changes = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+""": utils.py
-# END FILE CONTENTS
+        code_changes = f"""\
+{SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER}
+: utils.py
 def factorial(n):
     if n == 0:
         return 1
     else:
         return n * factorial(n - 1)
-END FILE CONTENTS: utils.py"""
-        
+END FILE CONTENTS: utils.py
+"""
         parsed_changes = parse_code_changes(code_changes)
-        
-        # Assert that the parsed changes contain the expected filename and content
         self.assertIn("utils.py", parsed_changes)
-        self.assertEqual(parsed_changes["utils.py"], """# END FILE CONTENTS
-def factorial(n):
-    if n == 0:
-        return 1
-    else:
-        return n * factorial(n - 1)""")
+        self.assertEqual(parsed_changes["utils.py"], "def factorial(n):\n    if n == 0:\n        return 1\n    else:\n        return n * factorial(n - 1)\n")
+
+if __name__ == "__main__":
+    unittest.main()
