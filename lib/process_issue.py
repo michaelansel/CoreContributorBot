@@ -1,7 +1,8 @@
+from .rag_loop import rag_loop
 from .github import repo
 from .openai import openai_client
-from .rag_loop import rag_loop
 from .parse_code_changes import parse_code_changes
+from .log import log
 
 def process_issue(issue):
     """
