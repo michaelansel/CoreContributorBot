@@ -9,7 +9,7 @@ from lib.github import repo
 from lib.openai import openai_client
 from lib.rag_loop import rag_loop
 from lib.process_issue import process_issue
-from lib.process_pull_request import process_pull_request_comment
+from lib.process_pull_request_comment import process_pull_request_comment
 
 if __name__ == '__main__':
     # Run the bot
