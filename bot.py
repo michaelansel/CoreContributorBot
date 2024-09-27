@@ -1,16 +1,12 @@
 import os
 from openai import OpenAI
-from github import Github
 import unittest
 from unittest.mock import patch
 import sys
-from parse_code_changes import parse_code_changes
-from constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
-from log import log
-
-# Initialize GitHub API client
-gh_token = os.environ['GITHUB_TOKEN']
-gh = Github(gh_token)
+from lib.parse_code_changes import parse_code_changes
+from lib.constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
+from lib.log import log
+from lib.github import repo
 
 # Initialize OpenAI API client
 openai_api_key = os.environ['OPENAI_API_KEY']
@@ -20,10 +16,6 @@ openai_client = OpenAI(
     api_key=openai_api_key,
     base_url=openai_api_base,
 )
-
-# Define the repository to monitor
-repo_name = os.environ['GH_REPO']
-repo = gh.get_repo(repo_name)
 
 def process_issue(issue):
     """

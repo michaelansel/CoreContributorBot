@@ -1,4 +1,4 @@
-from constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
+from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 
 def parse_code_changes(code_changes):
     """

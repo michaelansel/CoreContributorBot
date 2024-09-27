@@ -1,5 +1,5 @@
-from parse_code_changes import parse_code_changes
-from constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
+from .parse_code_changes import parse_code_changes
+from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 import unittest
 
 # Unit tests
