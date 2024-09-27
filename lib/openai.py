@@ -13,8 +13,6 @@ openai_client = OpenAI(
 )
 
 def call_the_llm(prompt):
-    print('no!')
-    sys.exit(1)
     log("Request")
     log(prompt)
 
