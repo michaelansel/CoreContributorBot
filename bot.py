@@ -12,35 +12,31 @@ from lib.process_issue import process_issue
 from lib.process_pull_request import process_pull_request_comment
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1 and sys.argv[1] == 'test':
-        # Run the unit tests
-        unittest.main(argv=[sys.argv[0]], module=None, defaultTest='test_issue_processing')
-    else:
-        # Run the bot
-        log("Running")
-        for issue in repo.get_issues():
-            if issue.pull_request:
-                log("Ignoring pull request presenting as an issue")
-                continue
-            if issue.state == 'open':
-                if issue.comments == 0:
-                    log("Handling an issue")
-                    process_issue(issue)
-                else:
-                    comments = list(issue.get_comments())
-                    if comments:
-                        most_recent_comment = sorted(comments, key=lambda comment: comment.created_at)[-1]
-                        if not most_recent_comment.body.startswith("Bot Response: "):
-                            log("Handling an issue")
-                            process_issue(issue)
-
-        for pr in repo.get_pulls():
-            log(f"PR: {pr.title} ({pr.state}): {pr.comments}")
-            if pr.state == 'open' and pr.comments > 0:
-                comments = list(pr.get_issue_comments())
+    # Run the bot
+    log("Running")
+    for issue in repo.get_issues():
+        if issue.pull_request:
+            log("Ignoring pull request presenting as an issue")
+            continue
+        if issue.state == 'open':
+            if issue.comments == 0:
+                log("Handling an issue")
+                process_issue(issue)
+            else:
+                comments = list(issue.get_comments())
                 if comments:
                     most_recent_comment = sorted(comments, key=lambda comment: comment.created_at)[-1]
-                    log(f'Most recent comment: {most_recent_comment}')
                     if not most_recent_comment.body.startswith("Bot Response: "):
-                        log("Handling a pull request")
-                        process_pull_request_comment(pr, most_recent_comment)
+                        log("Handling an issue")
+                        process_issue(issue)
+
+    for pr in repo.get_pulls():
+        log(f"PR: {pr.title} ({pr.state}): {pr.comments}")
+        if pr.state == 'open' and pr.comments > 0:
+            comments = list(pr.get_issue_comments())
+            if comments:
+                most_recent_comment = sorted(comments, key=lambda comment: comment.created_at)[-1]
+                log(f'Most recent comment: {most_recent_comment}')
+                if not most_recent_comment.body.startswith("Bot Response: "):
+                    log("Handling a pull request")
+                    process_pull_request_comment(pr, most_recent_comment)
