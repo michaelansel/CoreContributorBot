@@ -82,33 +82,10 @@ def get_proposed_changes(pr):
         proposed_changes[file.filename] = file.patch
     return proposed_changes
 
-# Unit tests
-# class TestGitHubBot(unittest.TestCase):
-    # @patch.object(OpenAI, 'chat')
-    # def test_rag_loop(self, mock_openai):
-    #     # Test the RAG loop with a sample prompt and mocked OpenAI response
-    #     prompt = "Add a new function to the utils.py file that calculates the factorial of a given number"
-    #     mock_openai.completions.create.return_value = unittest.mock.Mock(choices=[unittest.mock.Mock(text="""Title: Add factorial function
-        
-    #     BEGIN FILE CONTENTS: utils.py
-    #     def factorial(n):
-    #         if n == 0:
-    #             return 1
-    #         else:
-    #             return n * factorial(n - 1)
-    #     END FILE CONTENTS
-    #     """)])
-        
-    #     code_changes = rag_loop(prompt)
-        
-    #     # Assert that the code changes contain the expected function
-    #     self.assertIn("def factorial(n):", code_changes)
-
-
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'test':
         # Run the unit tests
-        unittest.main(argv=[sys.argv[0]])
+        unittest.main(argv=[sys.argv[0]], module=test_bot)
     else:
         # Run the bot
         log("Running")
