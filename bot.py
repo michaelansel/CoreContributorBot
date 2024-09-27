@@ -1,5 +1,4 @@
 import os
-from openai import OpenAI
 import unittest
 from unittest.mock import patch
 import sys
@@ -7,15 +6,7 @@ from lib.parse_code_changes import parse_code_changes
 from lib.constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 from lib.log import log
 from lib.github import repo
-
-# Initialize OpenAI API client
-openai_api_key = os.environ['OPENAI_API_KEY']
-openai_api_base = "https://api.lambdalabs.com/v1"
-
-openai_client = OpenAI(
-    api_key=openai_api_key,
-    base_url=openai_api_base,
-)
+from lib.openai import openai_client
 
 def process_issue(issue):
     """
