@@ -1,5 +1,6 @@
 #!/bin/bash
 set -xe
-./build.sh
-./test.sh
-./run.sh
+SCRIPT_DIR=$(dirname "${BASH_SOURCE[0]}")
+"$SCRIPT_DIR/build.sh"
+"$SCRIPT_DIR/test.sh"
+"$SCRIPT_DIR/run.sh"
