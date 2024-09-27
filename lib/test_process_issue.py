@@ -1,11 +1,12 @@
 import unittest
 from unittest.mock import patch, Mock
 from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
+from .process_issue import process_issue
 
 class TestProcessIssue(unittest.TestCase):
-    @patch('lib.github.repo')
+    @patch('lib.process_issue.repo')
     @patch('github.Issue.Issue')
-    @patch('lib.rag_loop.rag_loop')
+    @patch('lib.process_issue.rag_loop')
     def test_process_issue(self, mock_rag_loop, Issue, mock_repo):
         mock_rag_loop.return_value = "\n\n".join([
             "CREATE PULL REQUEST",
@@ -27,7 +28,6 @@ class TestProcessIssue(unittest.TestCase):
         mock_repo.create_file.return_value = None
         mock_repo.create_pull.return_value.html_url = "Test URL"
 
-        from .process_issue import process_issue
         process_issue(issue)
         mock_repo.create_file.assert_called_once_with(
             path="test.txt",
