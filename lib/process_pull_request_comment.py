@@ -32,6 +32,6 @@ def process_pull_request_comment(pr, comment):
             comment_reply = "Bot Response: No non-empty files changed"
     else:
         comment_reply = "Bot Response: No additional code changes generated"
-
+    
     # Reply to the pull request comment with the bot's response
     comment.reply(comment_reply)
