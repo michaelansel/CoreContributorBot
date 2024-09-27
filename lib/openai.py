@@ -1,11 +1,6 @@
 import os
-from openai import OpenAI
+import openai
 
-# Initialize OpenAI API client
-openai_api_key = os.environ['OPENAI_API_KEY']
-openai_api_base = "https://api.lambdalabs.com/v1"
-
-openai_client = OpenAI(
-    api_key=openai_api_key,
-    base_url=openai_api_base,
-)
+def openai_client():
+    openai.api_key = os.environ.get('OPENAI_API_KEY')
+    return openai
