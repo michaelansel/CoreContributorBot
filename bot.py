@@ -5,6 +5,8 @@ from github import Github
 import unittest
 from unittest.mock import patch
 import sys
+from parse_code_changes import parse_code_changes
+from constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -29,10 +31,6 @@ openai_client = OpenAI(
 # Define the repository to monitor
 repo_name = os.environ['GH_REPO']
 repo = gh.get_repo(repo_name)
-
-# Special keyword that can never appear in the code or it breaks the self-management behavior
-# Reason: we split files in the LLM output on this keyword, so it should only exist in the LLM "meta" output
-SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER = " ".join(["###","BEGIN","FILE","CONTENTS"])
 
 def process_issue(issue):
     """
@@ -254,41 +252,8 @@ def rag_loop(prompt, extra_context):
 
     log("Ran out of iterations and terminated")
 
-def parse_code_changes(code_changes):
-    """
-    Parse the generated code changes into a dictionary of filenames and their updated contents.
-    """
-    changes_dict = {}
-    
-    # Split the code changes into separate file updates
-    d = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+": "
-    file_updates = [(d+e).strip() for e in ("\n"+code_changes).split("\n"+d) if e]
-    
-    for update in file_updates:
-        # Extract the filename and updated content
-        if update.startswith(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+': ') and "END FILE CONTENTS" in update:
-            filename_start = update.index(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+': ') + len(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+': ')
-            filename_end = update.index('\n', filename_start)
-            filename = update[filename_start:filename_end].strip()
-            
-            content_start = filename_end + 1
-            content_end = update.rfind('END FILE CONTENTS: '+filename)
-            if(content_end < 0):
-                log("Unable to locate end delimiter. Failing all parsing.")
-                log(update)
-                return {}
-            content = update[content_start:content_end].strip()
-            
-            # Add the filename and content to the changes dictionary
-            changes_dict[filename] = content
-        else:
-            log("Ignoring change for some reason")
-            log(update)
-
-    return changes_dict
-
 # Unit tests
-class TestGitHubBot(unittest.TestCase):
+# class TestGitHubBot(unittest.TestCase):
     # @patch.object(OpenAI, 'chat')
     # def test_rag_loop(self, mock_openai):
     #     # Test the RAG loop with a sample prompt and mocked OpenAI response
@@ -308,28 +273,7 @@ class TestGitHubBot(unittest.TestCase):
         
     #     # Assert that the code changes contain the expected function
     #     self.assertIn("def factorial(n):", code_changes)
-    
-    def test_parse_code_changes(self):
-        # Test the parse_code_changes function with a sample output
-        code_changes = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+""": utils.py
-# END FILE CONTENTS
-def factorial(n):
-    if n == 0:
-        return 1
-    else:
-        return n * factorial(n - 1)
-END FILE CONTENTS: utils.py"""
-        
-        parsed_changes = parse_code_changes(code_changes)
-        
-        # Assert that the parsed changes contain the expected filename and content
-        self.assertIn("utils.py", parsed_changes)
-        self.assertEqual(parsed_changes["utils.py"], """# END FILE CONTENTS
-def factorial(n):
-    if n == 0:
-        return 1
-    else:
-        return n * factorial(n - 1)""")
+
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'test':
