@@ -1,6 +1,5 @@
 import unittest
 from unittest.mock import patch
-from .rag_loop import rag_loop
 from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 
 class TestRagLoop(unittest.TestCase):
@@ -11,6 +10,7 @@ class TestRagLoop(unittest.TestCase):
         issue_body = "Please create a function that prints 'Hello, World!'."
         file_contents = ""
         
+        from .rag_loop import rag_loop
         response, new_file_contents = rag_loop(issue_body, file_contents)
 
         self.assertIn("```python", response)
