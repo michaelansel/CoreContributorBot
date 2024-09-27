@@ -2,6 +2,7 @@ from .openai import openai_client
 from .log import log
 from .github import repo
 from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
+import sys
 
 def rag_loop(prompt, extra_context):
     """
