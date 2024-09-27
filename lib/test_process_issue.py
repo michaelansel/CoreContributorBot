@@ -1,10 +1,10 @@
 import unittest
 from unittest.mock import patch
-from lib.process_issue import process_issue
-from lib.github import Issue
+from .process_issue import process_issue
+from github import Issue
 
 class TestProcessIssue(unittest.TestCase):
-    @patch('lib.openai.openai_client.create_chat_completion')
+    @patch('.openai.openai_client.create_chat_completion')
     def test_process_issue(self, mock_create_chat_completion):
         mock_create_chat_completion.return_value = {
             'choices': [
@@ -22,7 +22,7 @@ class TestProcessIssue(unittest.TestCase):
             'number': 1
         })
 
-        with patch('lib.github.repo') as mock_repo:
+        with patch('.github.repo') as mock_repo:
             process_issue(issue)
             mock_repo.get_issues.assert_called_once()
             mock_create_chat_completion.assert_called_once_with(
