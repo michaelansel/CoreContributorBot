@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
-from lib.rag_loop import rag_loop
-from lib.constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
+from .rag_loop import rag_loop
+from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 
 class TestRagLoop(unittest.TestCase):
     @patch('lib.openai.call_the_llm')
