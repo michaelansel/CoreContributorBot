@@ -1,35 +1,28 @@
-from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
-from .log import log
+import os
+from lib.constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 
-def parse_code_changes(code_changes):
-    """
-    Parse the generated code changes into a dictionary of filenames and their updated contents.
-    """
-    changes_dict = {}
-    
-    # Split the code changes into separate file updates
-    d = SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+": "
-    file_updates = [(d+e).strip() for e in ("\n"+code_changes).split("\n"+d) if e]
-    
-    for update in file_updates:
-        # Extract the filename and updated content
-        if update.startswith(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+': ') and "END FILE CONTENTS" in update:
-            filename_start = update.index(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+': ') + len(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER+': ')
-            filename_end = update.index('\n', filename_start)
-            filename = update[filename_start:filename_end].strip()
-            
-            content_start = filename_end + 1
-            content_end = update.rfind('END FILE CONTENTS: '+filename)
-            if(content_end < 0):
-                log("Unable to locate end delimiter. Failing all parsing.")
-                log(update)
-                return {}
-            content = update[content_start:content_end].strip()
-            
-            # Add the filename and content to the changes dictionary
-            changes_dict[filename] = content
+def parse_code_changes(text):
+    files = {}
+    current_file = None
+    current_contents = []
+
+    for line in text.split('\n'):
+        if line.startswith(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER):
+            if current_file:
+                files[current_file] = '\n'.join(current_contents)
+                current_contents = []
+            current_file = line[len(SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER):]
         else:
-            log("Ignoring change for some reason")
-            log(update)
+            current_contents.append(line)
 
-    return changes_dict
+    if current_file:
+        files[current_file] = '\n'.join(current_contents)
+
+    # Delete files with empty contents
+    for file, contents in list(files.items()):
+        if not contents.strip():
+            del files[file]
+            if os.path.exists(file):
+                os.remove(file)
+
+    return files
