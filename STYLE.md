@@ -1,3 +1,4 @@
 - Maintain a style document (this document) with the coding style guidelines for this repository.
-- This style guide can be udpated at any time as part of any pull request.
-- Organize the codebase into small files to minimize the amount of pre-existing code that must be regurgitated by the LLM when making changes.
+- This style guide can be updated at any time as part of any pull request.
+- Organize the codebase into small files to minimize the amount of pre-existing code that must be output by the LLM when making changes.
+- Write unit tests for all code to ensure the code does what it should and protect against regressions.
