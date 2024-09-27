@@ -9,11 +9,12 @@ from lib.github import repo
 from lib.openai import openai_client
 from lib.rag_loop import rag_loop
 from lib.process_issue import process_issue
+from lib.process_pull_request import process_pull_request_comment
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'test':
         # Run the unit tests
-        unittest.main(argv=[sys.argv[0]])
+        unittest.main(argv=[sys.argv[0]], module=None, defaultTest='test_issue_processing')
     else:
         # Run the bot
         log("Running")
