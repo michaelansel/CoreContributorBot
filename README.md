@@ -19,9 +19,9 @@ This repository contains a GitHub bot that automatically processes issues and pu
 
 1. Clone the repository
 2. Create a `.env` file based on the `.env.sample` file and add your GitHub and OpenAI API tokens
-3. Build the Docker image by running `./build.sh`
-4. Run the unit tests by running `./test.sh`
-5. Run the bot by running `./run.sh`
+3. Build the Docker image by running `./scripts/build.sh`
+4. Run the unit tests by running `./scripts/test.sh`
+5. Run the bot by running `./scripts/run.sh`
 
 ## Automated Testing
 
