@@ -2,3 +2,7 @@
 - This style guide can be updated at any time as part of any pull request.
 - Organize the codebase into small files to minimize the amount of pre-existing code that must be output by the LLM when making changes.
 - Write unit tests for all code to ensure the code does what it should and protect against regressions.
+- Change as little code as possible while still fulfilling the change request.
+- Add comments to the code that describe what is happening. Read the existing comments before changing anything. Keep the comments up to date when making changes.
+- Update this style guide based on feedback received in PRs to avoid making the same mistakes in the future.
+- If a unit test is failing, first validate that the test is designed properly for the test description and then update the code-under-test to make the test pass. Generally avoid modifying tests unless absolutely necessary.
