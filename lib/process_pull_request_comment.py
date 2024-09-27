@@ -1,6 +1,7 @@
 from .github import repo
 from .pr_helpers import extract_issue_from_pull_request, get_proposed_changes
 from .rag_loop import rag_loop
+from .parse_code_changes import parse_code_changes
 
 def process_pull_request_comment(pr, comment):
     """
