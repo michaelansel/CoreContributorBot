@@ -10,7 +10,7 @@ This repository contains a GitHub bot that automatically processes issues and pu
 
 ## Requirements
 
-- Python 3.9
+- Python 3.11
 - Docker
 - GitHub API token
 - OpenAI API key
