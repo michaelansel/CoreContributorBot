@@ -7,6 +7,7 @@ from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 def rag_loop(prompt, extra_context):
     context = ''
 
+    # Add initial context containing all the files in the repository
     context += "Existing files:\n"
     for file in repo.get_contents(''):
         if file.type == 'file':
