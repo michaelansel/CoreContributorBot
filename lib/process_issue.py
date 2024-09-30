@@ -8,8 +8,21 @@ def process_issue(issue):
     """
     Process a new issue, generate code changes using a RAG loop, and create a new pull request.
     """
+
+    # Get the most recent comment on the issue, if any
+    comments = list(issue.get_comments())
+    if comments:
+        most_recent_comment = sorted(comments, key=lambda comment: comment.created_at)[-1]
+        most_recent_comment_body = most_recent_comment.body
+    else:
+        most_recent_comment_body = ""
+    if most_recent_comment_body:
+        prompt_for_comment = "\nAdditional direction from most recent comment: {most_recent_comment_body}"
+    else:
+        prompt_for_comment = ""
+
     # Use the RAG loop to generate code changes
-    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}', "")
+    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}{prompt_for_comment}', "")
     
     if code_changes and code_changes.startswith("CREATE PULL REQUEST"):
         [cpr, title, rest] = code_changes.split("\n\n", 2)
