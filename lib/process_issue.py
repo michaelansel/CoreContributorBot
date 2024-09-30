@@ -1,59 +1,16 @@
-from .rag_loop import rag_loop
-from .github import repo
-from .parse_code_changes import parse_code_changes
-from .log import log
-from .commit_files import commit_files
+from lib.rag_loop import rag_loop
+from lib.constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 
 def process_issue(issue):
-    """
-    Process a new issue, generate code changes using a RAG loop, and create a new pull request.
-    """
-
-    # Get the most recent comment on the issue, if any
+    title = issue.title
+    body = issue.body
     comments = list(issue.get_comments())
     if comments:
-        most_recent_comment = sorted(comments, key=lambda comment: comment.created_at)[-1]
-        most_recent_comment_body = most_recent_comment.body
+        most_recent_comment = comments[-1].body
     else:
-        most_recent_comment_body = ""
-    if most_recent_comment_body:
-        prompt_for_comment = f"\nAdditional direction from most recent comment: {most_recent_comment_body}"
-    else:
-        prompt_for_comment = ""
+        most_recent_comment = ""
 
-    # Use the RAG loop to generate code changes
-    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}{prompt_for_comment}', "")
+    prompt = f"Issue Title: {title}\nIssue Body:\n{body}\nMost Recent Comment:\n{most_recent_comment}\n\nGenerate a code change to resolve the issue. Include the following delimiter to indicate the beginning of each new file's contents: {SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER}"
     
-    if code_changes and code_changes.startswith("CREATE PULL REQUEST"):
-        [cpr, title, rest] = code_changes.split("\n\n", 2)
-
-        pr_title = title.split('Title: ')[1]
-
-        # Parse the generated code changes
-        parsed_changes = parse_code_changes(rest)
-        
-        # Extract the pull request title
-        # pr_title = parsed_changes.pop('Title', f'Address issue #{issue.number}')
-
-        log(f"Ready to submit code changes for issue #{issue.number}")
-        log(f"Pull request title: {pr_title}")
-        log(f"Code changes: {parsed_changes}")
-        
-        # Create a new branch for the code changes
-        new_branch = f"issue-{issue.number}"
-        repo.create_git_ref(f'refs/heads/{new_branch}', repo.get_git_ref("heads/main").object.sha)
-        
-        # Update the files with the generated code changes
-        commit_files(new_branch, parsed_changes, f" to address issue #{issue.number}")
-        
-        # Create a new pull request
-        pr = repo.create_pull(
-            title=pr_title,
-            body=f'Address issue #{issue.number}',
-            head=new_branch,
-            base=repo.default_branch
-        )
-
-        issue.create_comment(f"Bot Response: Handling in PR: {pr.html_url}")
-    else:
-        log("Unable to parse final response")
+    response = rag_loop(prompt)
+    issue.create_comment(f"Bot Response: {response}")
