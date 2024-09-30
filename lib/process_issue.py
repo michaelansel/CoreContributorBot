@@ -2,6 +2,7 @@ from .rag_loop import rag_loop
 from .github import repo
 from .parse_code_changes import parse_code_changes
 from .log import log
+from .commit_files import commit_files
 
 def process_issue(issue):
     """
@@ -30,23 +31,7 @@ def process_issue(issue):
         repo.create_git_ref(f'refs/heads/{new_branch}', repo.get_git_ref("heads/main").object.sha)
         
         # Update the files with the generated code changes
-        for filename, content in parsed_changes.items():
-            try:
-                file = repo.get_contents(filename, ref=new_branch)
-                repo.update_file(
-                    path=f'{filename}',
-                    message=f'Update {filename} to address issue #{issue.number}',
-                    content=content,
-                    sha=file.sha,
-                    branch=new_branch,
-                )
-            except:
-                repo.create_file(
-                    path=f'{filename}',
-                    message=f'Update {filename} to address issue #{issue.number}',
-                    content=content,
-                    branch=new_branch,
-                )
+        commit_files(new_branch, parsed_changes, f" to address issue #{issue.number}")
         
         # Create a new pull request
         pr = repo.create_pull(

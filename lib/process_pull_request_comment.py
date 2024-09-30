@@ -1,3 +1,4 @@
+from .commit_files import commit_files
 from .github import repo
 from .pr_helpers import extract_issue_from_pull_request, get_proposed_changes
 from .rag_loop import rag_loop
@@ -29,28 +30,8 @@ def process_pull_request_comment(pr, comment):
     
     if code_changes:
         # Update the pull request with the generated code changes
-        
-        # Get the latest commit of the pull request
-        latest_commit = pr.get_commits().reversed[0]
-        
-        # Update the files with the generated code changes
         pr_branch = pr.head.ref
-        for filename, content in parse_code_changes(code_changes).items():
-            try:
-                file = repo.get_contents(filename, ref=pr_branch)
-                repo.update_file(
-                    path=f'{filename}',
-                    message=f'Update {filename} based on feedback',
-                    content=content,
-                    sha=file.sha,
-                    branch=pr_branch,
-                )
-            except:
-                repo.create_file(
-                    path=f'{filename}',
-                    message=f'Update {filename} based on feedback',
-                    content=content,
-                    branch=pr_branch,
-                )
+        changed_files = parse_code_changes(code_changes)
+        commit_files(pr_branch, changed_files, " based on feedback")
 
         pr.create_issue_comment("Bot Response: Updated based on feedback")

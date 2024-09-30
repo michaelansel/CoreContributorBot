@@ -4,10 +4,11 @@ from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 from .process_issue import process_issue
 
 class TestProcessIssue(unittest.TestCase):
+    @patch('lib.process_issue.commit_files')
     @patch('lib.process_issue.repo')
     @patch('github.Issue.Issue')
     @patch('lib.process_issue.rag_loop')
-    def test_process_issue(self, mock_rag_loop, Issue, mock_repo):
+    def test_process_issue(self, mock_rag_loop, Issue, mock_repo, mock_commit_files):
         mock_rag_loop.return_value = "\n\n".join([
             "CREATE PULL REQUEST",
             "Title: Resolving Test issue",
@@ -24,16 +25,13 @@ class TestProcessIssue(unittest.TestCase):
         issue.number = 1
         issue.create_comment.return_value = True
 
-        mock_repo.get_contents.side_effect = Mock(side_effect=Exception('Test'))
-        mock_repo.create_file.return_value = None
         mock_repo.create_pull.return_value.html_url = "Test URL"
 
         process_issue(issue)
-        mock_repo.create_file.assert_called_once_with(
-            path="test.txt",
-            message='Update test.txt to address issue #1',
-            content="This is a test file.",
-            branch='issue-1',
+        mock_commit_files.assert_called_once_with(
+            "issue-1",
+            {"test.txt": "This is a test file."},
+            " to address issue #1"
         )
         mock_rag_loop.assert_called_once()
         mock_repo.create_pull.assert_called_once_with(
