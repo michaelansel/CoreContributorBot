@@ -1,46 +1,23 @@
-from .rag_loop import rag_loop
-from .github import repo
-from .parse_code_changes import parse_code_changes
-from .log import log
-from .commit_files import commit_files
+from lib.constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER, SPECIAL_END_FILE_CONTENTS_DELIMETER
+from lib.github import repo
+from lib.openai import openai_client
+from lib.rag_loop import rag_loop
+from lib.parse_code_changes import parse_code_changes
 
 def process_issue(issue):
-    """
-    Process a new issue, generate code changes using a RAG loop, and create a new pull request.
-    """
-    # Use the RAG loop to generate code changes
-    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}', "")
-    
-    if code_changes and code_changes.startswith("CREATE PULL REQUEST"):
-        [cpr, title, rest] = code_changes.split("\n\n", 2)
+    title = issue.title
+    body = issue.body
 
-        pr_title = title.split('Title: ')[1]
+    prompt = f"Issue Title: {title}\n\nIssue Body:\n{body}\n\n{SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER}\n"
+    response, _ = rag_loop(openai_client, prompt, repo.git_repo)
 
-        # Parse the generated code changes
-        parsed_changes = parse_code_changes(rest)
-        
-        # Extract the pull request title
-        # pr_title = parsed_changes.pop('Title', f'Address issue #{issue.number}')
-
-        log(f"Ready to submit code changes for issue #{issue.number}")
-        log(f"Pull request title: {pr_title}")
-        log(f"Code changes: {parsed_changes}")
-        
-        # Create a new branch for the code changes
-        new_branch = f"issue-{issue.number}"
-        repo.create_git_ref(f'refs/heads/{new_branch}', repo.get_git_ref("heads/main").object.sha)
-        
-        # Update the files with the generated code changes
-        commit_files(new_branch, parsed_changes, f" to address issue #{issue.number}")
-        
-        # Create a new pull request
-        pr = repo.create_pull(
-            title=pr_title,
-            body=f'Address issue #{issue.number}',
-            head=new_branch,
-            base=repo.default_branch
-        )
-
-        issue.create_comment(f"Bot Response: Handling in PR: {pr.html_url}")
+    code_changes = parse_code_changes(response)
+    if code_changes:
+        pr = repo.create_pull_request(issue, code_changes, response)
+        if pr:
+            issue.edit(state='closed')
+            issue.create_comment(f"Bot Response: Pull request created: {pr.html_url}")
+        else:
+            issue.create_comment("Bot Response: No changes suggested")
     else:
-        log("Unable to parse final response")
+        issue.create_comment("Bot Response: No changes suggested")
