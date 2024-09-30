@@ -1,45 +1,33 @@
 import unittest
-from unittest.mock import patch, Mock
-from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
+from unittest.mock import patch
 from .process_issue import process_issue
 
 class TestProcessIssue(unittest.TestCase):
-    @patch('lib.process_issue.commit_files')
-    @patch('lib.process_issue.repo')
-    @patch('github.Issue.Issue')
-    @patch('lib.process_issue.rag_loop')
-    def test_process_issue(self, mock_rag_loop, Issue, mock_repo, mock_commit_files):
-        mock_rag_loop.return_value = "\n\n".join([
-            "CREATE PULL REQUEST",
-            "Title: Resolving Test issue",
-            "\n".join([
-                SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER + ": test.txt",
-                "This is a test file.",
-                "END FILE CONTENTS: test.txt",
-            ]),
-        ])
+    @patch('lib.github.Issue')
+    @patch('lib.github.Repo')
+    @patch('lib.openai.OpenAI')
+    @patch('lib.rag_loop.rag_loop')
+    @patch('lib.github.parse_code_changes')
+    def test_process_issue(self, mock_parse_code_changes, mock_rag_loop, mock_openai, mock_repo, mock_issue):
+        # Set up the mock objects
+        mock_issue.title = 'Test Issue'
+        mock_issue.body = 'This is a test issue.'
+        mock_issue.html_url = 'https://github.com/username/repo/issues/1'
+        mock_issue.get_comments.return_value = []
+        mock_repo.create_pull.return_value.html_url = 'https://github.com/username/repo/pull/1'
+        mock_rag_loop.return_value = 'Suggested Code Change:\nBEGIN FILE foo.py\nprint("Hello, World!")\nEND FILE'
+        mock_parse_code_changes.return_value = {'foo.py': 'print("Hello, World!")'}
 
-        issue = Issue()
-        issue.title = 'Test Issue'
-        issue.body = 'This is a test issue'
-        issue.number = 1
-        issue.create_comment.return_value = True
+        # Call the function under test
+        process_issue(mock_issue)
 
-        mock_repo.create_pull.return_value.html_url = "Test URL"
-
-        process_issue(issue)
-        mock_commit_files.assert_called_once_with(
-            "issue-1",
-            {"test.txt": "This is a test file."},
-            " to address issue #1"
-        )
-        mock_rag_loop.assert_called_once()
-        mock_repo.create_pull.assert_called_once_with(
-            title='Resolving Test issue',
-            body='Address issue #1',
-            head='issue-1',
-            base=mock_repo.default_branch,
-        )
+        # Assert that the expected methods were called
+        mock_issue.get_comments.assert_called_once()
+        mock_rag_loop.assert_called_once_with(mock_openai, 'Issue: Test Issue\n\nDescription:\nThis is a test issue.\n\nMost Recent Comment:\n\n\nSuggested Code Change:')
+        mock_parse_code_changes.assert_called_once_with('Suggested Code Change:\nBEGIN FILE foo.py\nprint("Hello, World!")\nEND FILE')
+        mock_repo.create_pull.assert_called_once_with(title='Bot: Test Issue', body='Bot-generated pull request for https://github.com/username/repo/issues/1', head='master', base='master')
+        mock_repo.create_file.assert_called_once_with('foo.py', 'Bot-generated change for https://github.com/username/repo/issues/1', 'print("Hello, World!")', branch='master')
+        mock_issue.create_comment.assert_called_once_with('Bot Response: I have created a pull request to address this issue: https://github.com/username/repo/pull/1')
 
 if __name__ == '__main__':
     unittest.main()
