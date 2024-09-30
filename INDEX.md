@@ -10,4 +10,5 @@
 - requirements.txt: List of required Python packages
 - INDEX.md: Index of all files in the repository
 - lib/process_issue.py: Function to process a GitHub issue and generate a pull request
-- test_process_issue.py: Unit tests for the process_issue function
+- lib/test_process_issue.py: Unit tests for the process_issue function
+- lib/test_rag_loop.py: Unit tests for the rag_loop function
