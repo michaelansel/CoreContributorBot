@@ -20,16 +20,10 @@ if __name__ == '__main__':
             log("Ignoring pull request presenting as an issue")
             continue
         if issue.state == 'open':
-            if issue.comments == 0:
+            comments = list(issue.get_comments())
+            if not comments or not comments[-1].body.startswith("Bot Response: "):
                 log("Handling an issue")
                 process_issue(issue)
-            else:
-                comments = list(issue.get_comments())
-                if comments:
-                    most_recent_comment = sorted(comments, key=lambda comment: comment.created_at)[-1]
-                    if not most_recent_comment.body.startswith("Bot Response: "):
-                        log("Handling an issue")
-                        process_issue(issue)
 
     for pr in repo.get_pulls():
         log(f"PR: {pr.title} ({pr.state}): {pr.comments}")
