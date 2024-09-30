@@ -1,3 +1,4 @@
+# Main entry point for the GitHub bot
 import os
 import unittest
 from unittest.mock import patch
