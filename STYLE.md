@@ -7,3 +7,5 @@
 - Update this style guide based on feedback received in PRs to avoid making the same mistakes in the future. Updates to this file should generally just be additional bullet points appended to the end.
 - If a unit test is failing, first validate that the test is designed properly for the test description and then update the code-under-test to make the test pass. Generally avoid modifying tests unless absolutely necessary.
 - Always reference the existing codebase to produce code that is stylistically consistent with the existing code.
+- Maintain a one-line comment at the top of each Python file describing what the file does. Keep this comment up to date as the file is changed.
+- Maintain an INDEX.md file which lists every file in the repo and a short, one-line summary of what it contains. Keep this file up to date as files are added, removed, or changed.
