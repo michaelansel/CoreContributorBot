@@ -4,6 +4,7 @@ from openai import OpenAI
 from .log import log
 import sys
 
+# Initialize OpenAI API client
 openai_api_key = os.environ['OPENAI_API_KEY']
 openai_api_base = "https://api.lambdalabs.com/v1"
 
