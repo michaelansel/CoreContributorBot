@@ -17,7 +17,7 @@ def process_issue(issue):
     else:
         most_recent_comment_body = ""
     if most_recent_comment_body:
-        prompt_for_comment = "\nAdditional direction from most recent comment: {most_recent_comment_body}"
+        prompt_for_comment = f"\nAdditional direction from most recent comment: {most_recent_comment_body}"
     else:
         prompt_for_comment = ""
 

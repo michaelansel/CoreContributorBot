@@ -21,7 +21,7 @@ class TestCommitFiles(unittest.TestCase):
         commit_files(branch, files, " to address issue #1")
         mock_repo.create_file.assert_called_once_with(
             path="test.txt",
-            message='Update test.txt to address issue #1',
+            message='Create test.txt to address issue #1',
             content=files["test.txt"],
             branch=branch,
         )
