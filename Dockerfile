@@ -1,3 +1,4 @@
+# Docker configuration for running the bot
 # Use the official Python runtime as the base image
 FROM python:3.11
 

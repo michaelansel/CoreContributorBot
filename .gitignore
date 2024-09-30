@@ -1,3 +1,4 @@
+# List of files and directories to ignore in git
 .env
 *.pyc
 __pycache__/
