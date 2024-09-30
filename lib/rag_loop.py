@@ -1,15 +1,12 @@
+# Generate code changes using a RAG loop
 from .openai import call_the_llm
 from .log import log
 from .github import repo
 from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 
 def rag_loop(prompt, extra_context):
-    """
-    Generate code changes using a RAG loop.
-    """
     context = ''
 
-    # Add initial context containing all the files in the repository
     context += "Existing files:\n"
     for file in repo.get_contents(''):
         if file.type == 'file':
@@ -17,6 +14,22 @@ def rag_loop(prompt, extra_context):
             file_contents = repo.get_contents(file_path).decoded_content.decode() 
             context += f'BEGIN FILE {file_path}\n{file_contents}\nEND FILE {file_path}\n\n'
     context += '\n'
+
+    def walk_directory(directory_path):
+        file_list = ""
+        for file in repo.get_contents(directory_path):
+            if file.type == 'dir':
+                file_list += walk_directory(file.path)
+            elif file.type == 'file':
+                file_path = file.path
+                file_contents = repo.get_contents(file_path).decoded_content.decode()
+                file_list += f'BEGIN FILE {file_path}\n{file_contents}\nEND FILE {file_path}\n\n'
+        return file_list
+    
+    context += "Existing files:\n"
+    context += walk_directory('')
+    context += '\n'
+
 
     context += extra_context
 
