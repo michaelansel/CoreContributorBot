@@ -1,61 +1,30 @@
-from .rag_loop import rag_loop
-from .github import repo
-from .parse_code_changes import parse_code_changes
-from .log import log
+import os
+from lib.constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
+from lib.github import repo
+from lib.openai import openai_client
+from lib.rag_loop import rag_loop
 
 def process_issue(issue):
-    """
-    Process a new issue, generate code changes using a RAG loop, and create a new pull request.
-    """
-    # Use the RAG loop to generate code changes
-    code_changes = rag_loop(f'Title: {issue.title}\nDescription:\n{issue.body}', "")
-    
-    if code_changes and code_changes.startswith("CREATE PULL REQUEST"):
-        [cpr, title, rest] = code_changes.split("\n\n", 2)
+    title = issue.title
+    body = issue.body
+    number = issue.number
 
-        pr_title = title.split('Title: ')[1]
+    response = rag_loop(f"Issue: {title}\n{body}")
 
-        # Parse the generated code changes
-        parsed_changes = parse_code_changes(rest)
-        
-        # Extract the pull request title
-        # pr_title = parsed_changes.pop('Title', f'Address issue #{issue.number}')
+    code_changes = parse_code_changes(response)
 
-        log(f"Ready to submit code changes for issue #{issue.number}")
-        log(f"Pull request title: {pr_title}")
-        log(f"Code changes: {parsed_changes}")
-        
-        # Create a new branch for the code changes
-        new_branch = f"issue-{issue.number}"
-        repo.create_git_ref(f'refs/heads/{new_branch}', repo.get_git_ref("heads/main").object.sha)
-        
-        # Update the files with the generated code changes
-        for filename, content in parsed_changes.items():
-            try:
-                file = repo.get_contents(filename, ref=new_branch)
-                repo.update_file(
-                    path=f'{filename}',
-                    message=f'Update {filename} to address issue #{issue.number}',
-                    content=content,
-                    sha=file.sha,
-                    branch=new_branch,
-                )
-            except:
-                repo.create_file(
-                    path=f'{filename}',
-                    message=f'Update {filename} to address issue #{issue.number}',
-                    content=content,
-                    branch=new_branch,
-                )
-        
-        # Create a new pull request
-        pr = repo.create_pull(
-            title=pr_title,
-            body=f'Address issue #{issue.number}',
-            head=new_branch,
-            base=repo.default_branch
-        )
+    for code_change in code_changes:
+        filename = code_change['filename']
+        contents = code_change['contents']
 
-        issue.create_comment(f"Bot Response: Handling in PR: {pr.html_url}")
-    else:
-        log("Unable to parse final response")
+        if not contents:
+            repo.delete_file(filename, f"Delete empty file {filename} per issue #{number}", branch='main')
+            continue
+
+        try:
+            existing_file = repo.get_contents(filename, ref='main')
+            repo.update_file(filename, f"Update {filename} per issue #{number}", contents, existing_file.sha, branch='main')
+        except Exception as e:
+            repo.create_file(filename, f"Create {filename} per issue #{number}", contents, branch='main')
+
+    issue.create_comment(f"Bot Response: {response}")
