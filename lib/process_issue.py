@@ -1,3 +1,4 @@
+# Process a new issue, generate code changes using a RAG loop, and create a new pull request
 from .rag_loop import rag_loop
 from .github import repo
 from .parse_code_changes import parse_code_changes

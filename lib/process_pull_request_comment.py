@@ -1,3 +1,4 @@
+# Process a pull request comment and generate code changes if necessary
 from .commit_files import commit_files
 from .github import repo
 from .pr_helpers import extract_issue_from_pull_request, get_proposed_changes

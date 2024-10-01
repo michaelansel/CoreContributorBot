@@ -1,3 +1,4 @@
+# Helper functions for processing pull requests
 from .github import repo
 
 def extract_issue_from_pull_request(pr_body):

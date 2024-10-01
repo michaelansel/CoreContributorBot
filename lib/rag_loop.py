@@ -1,12 +1,10 @@
+# Generate code changes using a RAG loop
 from .openai import call_the_llm
 from .log import log
 from .github import repo
 from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 
 def rag_loop(prompt, extra_context):
-    """
-    Generate code changes using a RAG loop.
-    """
     context = ''
 
     # Add initial context containing all the files in the repository

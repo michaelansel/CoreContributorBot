@@ -1,3 +1,4 @@
+# Configure logging for the application
 import logging
 
 # Initialize logging

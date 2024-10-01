@@ -1,3 +1,4 @@
+# Initialize GitHub API client and define the repository to monitor
 from github import Github
 import os
 

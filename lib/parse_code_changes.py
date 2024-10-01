@@ -1,10 +1,8 @@
+# Parse the generated code changes into a dictionary of filenames and contents
 from .constants import SPECIAL_BEGIN_FILE_CONTENTS_DELIMETER
 from .log import log
 
 def parse_code_changes(code_changes):
-    """
-    Parse the generated code changes into a dictionary of filenames and their updated contents.
-    """
     changes_dict = {}
     
     # Split the code changes into separate file updates
