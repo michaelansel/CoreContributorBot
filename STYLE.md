@@ -9,3 +9,4 @@
 - Always reference the existing codebase to produce code that is stylistically consistent with the existing code.
 - Maintain a one-line comment at the top of each Python file describing what the file does. Keep this comment up to date as the file is changed.
 - Maintain an INDEX.md file which lists every file in the repo and a short, one-line summary of what it contains. Keep this file up to date as files are added, removed, or changed.
+- All functions and classes should have docstrings describing what the code does and how to interact with it.
